@@ -1,8 +1,10 @@
 # coding=utf-8
-VERSION = (1, 6, 7)
+VERSION = (1, 6, 7, 1)
 
 # Dynamically calculate the version based on VERSION tuple
-if len(VERSION) > 2 and VERSION[2] is not None:
+if len(VERSION) > 3:
+    str_version = "%s.%s.%s.%s" % VERSION[:4]
+elif len(VERSION) > 2 and VERSION[2] is not None:
     if isinstance(VERSION[2], int):
         str_version = "%s.%s.%s" % VERSION[:3]
     else:

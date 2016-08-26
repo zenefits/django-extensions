@@ -43,6 +43,10 @@ class Command(BaseCommand):
         parser.add_argument(
             "--urlconf", "-c", dest="urlconf", default="ROOT_URLCONF",
             help="Set the settings URL conf variable to use")
+        parser.add_argument(
+            "--save-json-file", "-s", action="store", dest="file_path",
+            help="Store the json result to given file. Note: this only work for json format!")
+
 
     @signalcommand
     def handle(self, *args, **options):
@@ -113,7 +117,14 @@ class Command(BaseCommand):
                 else:
                     func_name = re.sub(r' at 0x[0-9a-f]+', '', repr(func))
 
-                module = '{0}.{1}'.format(func.__module__, func_name)
+                module = func.__module__
+                tastypie_resource = getattr(func, '_tastypie_resource', None)
+                if tastypie_resource:
+                    module = '[tastypie]' + tastypie_resource.__module__
+                    func_name = tastypie_resource.__class__.__name__
+                    regex = re.sub('\^\(.*\)', tastypie_resource._meta.resource_name, regex)
+
+                module = '{0}.{1}'.format(module, func_name)
                 url_name = url_name or ''
                 url = simplify_regex(regex)
                 decorator = ', '.join(decorators)
@@ -161,10 +172,20 @@ class Command(BaseCommand):
 
         elif format_style == 'json':
             if pretty_json:
-                return json.dumps(views, indent=4)
-            return json.dumps(views)
+                result = json.dumps(views, indent=4)
+            else:
+                result = json.dumps(views)
+
+            file_path = options.get('file_path')
+            if file_path:
+                with open(file_path, 'w') as outfile:
+                    outfile.write(result)
+
+            return result
 
         return "\n".join([v for v in views]) + "\n"
+
+
 
     def extract_views_from_urlpatterns(self, urlpatterns, base='', namespace=None):
         """
